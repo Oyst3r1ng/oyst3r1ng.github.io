@@ -9,7 +9,7 @@
     <meta name="description" content="前言好久不见，在“RMI 反序列化 Attack”一文，最后说到要去记录一下 RMI 引出的 Gadgets 以及 JEP 290 的绕过方式，它来了。这篇文章先来记录一下 RMI 引出的两条 Gadgets。 第一条这一条 Gadget 说白了就是利用一个反序列化的入口点去新开启了一个 RMI 的 Server 端，后续可以使用之前提到的攻击 Server 端的方式去打它，也就是 Ysoseri">
 <meta property="og:type" content="article">
 <meta property="og:title" content="记录 RMI 引出的 Gadgets">
-<meta property="og:url" content="http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/index.html">
+<meta property="og:url" content="http://example.com/2024/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/index.html">
 <meta property="og:site_name" content="Oystr&#39;s Blog">
 <meta property="og:description" content="前言好久不见，在“RMI 反序列化 Attack”一文，最后说到要去记录一下 RMI 引出的 Gadgets 以及 JEP 290 的绕过方式，它来了。这篇文章先来记录一下 RMI 引出的两条 Gadgets。 第一条这一条 Gadget 说白了就是利用一个反序列化的入口点去新开启了一个 RMI 的 Server 端，后续可以使用之前提到的攻击 Server 端的方式去打它，也就是 Ysoseri">
 <meta property="og:locale" content="en_US">
@@ -28,8 +28,8 @@
 <meta property="og:image" content="https://oyst3r-blog.oss-cn-beijing.aliyuncs.com/images/2025/12/01/1764559971.png">
 <meta property="og:image" content="https://oyst3r-blog.oss-cn-beijing.aliyuncs.com/images/2025/12/01/1764559980.png">
 <meta property="og:image" content="https://oyst3r-blog.oss-cn-beijing.aliyuncs.com/images/2025/12/01/1764559986.png">
-<meta property="article:published_time" content="2025-11-23T02:57:39.000Z">
-<meta property="article:modified_time" content="2025-12-01T03:39:29.824Z">
+<meta property="article:published_time" content="2024-11-23T02:57:39.000Z">
+<meta property="article:modified_time" content="2025-12-04T01:54:16.595Z">
 <meta property="article:author" content="Oyst3r">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:image" content="https://oyst3r-blog.oss-cn-beijing.aliyuncs.com/images/2025/12/01/1764559775.png">
@@ -97,7 +97,7 @@
     <span id="actions">
       <ul>
         
-        <li><a class="icon" aria-label="Previous post" href="/2025/11/26/Bypass-JEP-290/"><i class="fa-solid fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="Previous post" href="/2024/11/26/Bypass-JEP-290/"><i class="fa-solid fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
         
         
         <li><a class="icon" aria-label="Back to top" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
@@ -111,17 +111,17 @@
     <br/>
     <div id="share" style="display: none">
       <ul>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&text=记录 RMI 引出的 Gadgets"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&title=记录 RMI 引出的 Gadgets"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&is_video=false&description=记录 RMI 引出的 Gadgets"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
-  <li><a class="icon" href="mailto:?subject=记录 RMI 引出的 Gadgets&body=Check out this article: http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&title=记录 RMI 引出的 Gadgets"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&title=记录 RMI 引出的 Gadgets"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&title=记录 RMI 引出的 Gadgets"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&title=记录 RMI 引出的 Gadgets"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&name=记录 RMI 引出的 Gadgets&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&t=记录 RMI 引出的 Gadgets"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2024/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2024/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&text=记录 RMI 引出的 Gadgets"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2024/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&title=记录 RMI 引出的 Gadgets"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2024/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&is_video=false&description=记录 RMI 引出的 Gadgets"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=记录 RMI 引出的 Gadgets&body=Check out this article: http://example.com/2024/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2024/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&title=记录 RMI 引出的 Gadgets"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2024/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&title=记录 RMI 引出的 Gadgets"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2024/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&title=记录 RMI 引出的 Gadgets"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2024/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&title=记录 RMI 引出的 Gadgets"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2024/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&name=记录 RMI 引出的 Gadgets&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2024/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&t=记录 RMI 引出的 Gadgets"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
 </ul>
 
     </div>
@@ -153,7 +153,7 @@
       
     <div class="postdate">
       
-        <time datetime="2025-11-23T02:57:39.000Z" class="dt-published" itemprop="datePublished">2025-11-23</time>
+        <time datetime="2024-11-23T02:57:39.000Z" class="dt-published" itemprop="datePublished">2024-11-23</time>
         
       
     </div>
@@ -260,17 +260,17 @@
 
     <div id="share-footer" style="display: none">
       <ul>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&text=记录 RMI 引出的 Gadgets"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&title=记录 RMI 引出的 Gadgets"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&is_video=false&description=记录 RMI 引出的 Gadgets"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" href="mailto:?subject=记录 RMI 引出的 Gadgets&body=Check out this article: http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&title=记录 RMI 引出的 Gadgets"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&title=记录 RMI 引出的 Gadgets"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&title=记录 RMI 引出的 Gadgets"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&title=记录 RMI 引出的 Gadgets"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&name=记录 RMI 引出的 Gadgets&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&t=记录 RMI 引出的 Gadgets"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2024/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2024/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&text=记录 RMI 引出的 Gadgets"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2024/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&title=记录 RMI 引出的 Gadgets"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2024/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&is_video=false&description=记录 RMI 引出的 Gadgets"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=记录 RMI 引出的 Gadgets&body=Check out this article: http://example.com/2024/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2024/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&title=记录 RMI 引出的 Gadgets"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2024/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&title=记录 RMI 引出的 Gadgets"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2024/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&title=记录 RMI 引出的 Gadgets"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2024/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&title=记录 RMI 引出的 Gadgets"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2024/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&name=记录 RMI 引出的 Gadgets&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2024/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/&t=记录 RMI 引出的 Gadgets"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
 </ul>
 
     </div>

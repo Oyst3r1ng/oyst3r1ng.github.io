@@ -9,7 +9,7 @@
     <meta name="description" content="前言如何去 Bypass JEP 290？本文会记录不同场景下的测试与绕过思路。文章包含对 JEP 290 机制的分析、针对 Server 与 Client 两端的实战演示、关键代码片段与 PoC，以及为验证所做的工具与说明（代码已发布在 GitHub 上）。 What is JEP 290？JEP 290（Java Enhancement Proposal 290）是 Java 为了解决反序列化">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Bypass JEP 290">
-<meta property="og:url" content="http://example.com/2025/11/26/Bypass-JEP-290/index.html">
+<meta property="og:url" content="http://example.com/2024/11/26/Bypass-JEP-290/index.html">
 <meta property="og:site_name" content="Oystr&#39;s Blog">
 <meta property="og:description" content="前言如何去 Bypass JEP 290？本文会记录不同场景下的测试与绕过思路。文章包含对 JEP 290 机制的分析、针对 Server 与 Client 两端的实战演示、关键代码片段与 PoC，以及为验证所做的工具与说明（代码已发布在 GitHub 上）。 What is JEP 290？JEP 290（Java Enhancement Proposal 290）是 Java 为了解决反序列化">
 <meta property="og:locale" content="en_US">
@@ -27,8 +27,8 @@
 <meta property="og:image" content="https://oyst3r-blog.oss-cn-beijing.aliyuncs.com/images/2025/11/29/1764405972.png">
 <meta property="og:image" content="https://oyst3r-blog.oss-cn-beijing.aliyuncs.com/images/2025/12/01/1764557309.png">
 <meta property="og:image" content="https://oyst3r-blog.oss-cn-beijing.aliyuncs.com/images/2025/11/29/1764405978.png">
-<meta property="article:published_time" content="2025-11-26T13:26:34.000Z">
-<meta property="article:modified_time" content="2025-12-01T03:45:32.732Z">
+<meta property="article:published_time" content="2024-11-26T13:26:34.000Z">
+<meta property="article:modified_time" content="2025-12-04T01:54:49.904Z">
 <meta property="article:author" content="Oyst3r">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:image" content="https://oyst3r-blog.oss-cn-beijing.aliyuncs.com/images/2025/11/29/1764405340.png">
@@ -97,7 +97,7 @@
       <ul>
         
         
-        <li><a class="icon" aria-label="Next post" href="/2025/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="Next post" href="/2024/11/23/%E8%AE%B0%E5%BD%95-RMI-%E5%BC%95%E5%87%BA%E7%9A%84-Gadgets/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
         
         <li><a class="icon" aria-label="Back to top" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
         <li><a class="icon" aria-label="Share post" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
@@ -110,17 +110,17 @@
     <br/>
     <div id="share" style="display: none">
       <ul>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2025/11/26/Bypass-JEP-290/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2025/11/26/Bypass-JEP-290/&text=Bypass JEP 290"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2025/11/26/Bypass-JEP-290/&title=Bypass JEP 290"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2025/11/26/Bypass-JEP-290/&is_video=false&description=Bypass JEP 290"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
-  <li><a class="icon" href="mailto:?subject=Bypass JEP 290&body=Check out this article: http://example.com/2025/11/26/Bypass-JEP-290/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2025/11/26/Bypass-JEP-290/&title=Bypass JEP 290"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2025/11/26/Bypass-JEP-290/&title=Bypass JEP 290"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2025/11/26/Bypass-JEP-290/&title=Bypass JEP 290"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2025/11/26/Bypass-JEP-290/&title=Bypass JEP 290"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2025/11/26/Bypass-JEP-290/&name=Bypass JEP 290&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2025/11/26/Bypass-JEP-290/&t=Bypass JEP 290"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2024/11/26/Bypass-JEP-290/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2024/11/26/Bypass-JEP-290/&text=Bypass JEP 290"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2024/11/26/Bypass-JEP-290/&title=Bypass JEP 290"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2024/11/26/Bypass-JEP-290/&is_video=false&description=Bypass JEP 290"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Bypass JEP 290&body=Check out this article: http://example.com/2024/11/26/Bypass-JEP-290/"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2024/11/26/Bypass-JEP-290/&title=Bypass JEP 290"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2024/11/26/Bypass-JEP-290/&title=Bypass JEP 290"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2024/11/26/Bypass-JEP-290/&title=Bypass JEP 290"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2024/11/26/Bypass-JEP-290/&title=Bypass JEP 290"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2024/11/26/Bypass-JEP-290/&name=Bypass JEP 290&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2024/11/26/Bypass-JEP-290/&t=Bypass JEP 290"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
 </ul>
 
     </div>
@@ -152,7 +152,7 @@
       
     <div class="postdate">
       
-        <time datetime="2025-11-26T13:26:34.000Z" class="dt-published" itemprop="datePublished">2025-11-26</time>
+        <time datetime="2024-11-26T13:26:34.000Z" class="dt-published" itemprop="datePublished">2024-11-26</time>
         
       
     </div>
@@ -252,17 +252,17 @@
 
     <div id="share-footer" style="display: none">
       <ul>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2025/11/26/Bypass-JEP-290/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2025/11/26/Bypass-JEP-290/&text=Bypass JEP 290"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2025/11/26/Bypass-JEP-290/&title=Bypass JEP 290"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2025/11/26/Bypass-JEP-290/&is_video=false&description=Bypass JEP 290"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" href="mailto:?subject=Bypass JEP 290&body=Check out this article: http://example.com/2025/11/26/Bypass-JEP-290/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2025/11/26/Bypass-JEP-290/&title=Bypass JEP 290"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2025/11/26/Bypass-JEP-290/&title=Bypass JEP 290"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2025/11/26/Bypass-JEP-290/&title=Bypass JEP 290"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2025/11/26/Bypass-JEP-290/&title=Bypass JEP 290"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2025/11/26/Bypass-JEP-290/&name=Bypass JEP 290&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
-  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2025/11/26/Bypass-JEP-290/&t=Bypass JEP 290"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2024/11/26/Bypass-JEP-290/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2024/11/26/Bypass-JEP-290/&text=Bypass JEP 290"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2024/11/26/Bypass-JEP-290/&title=Bypass JEP 290"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2024/11/26/Bypass-JEP-290/&is_video=false&description=Bypass JEP 290"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Bypass JEP 290&body=Check out this article: http://example.com/2024/11/26/Bypass-JEP-290/"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2024/11/26/Bypass-JEP-290/&title=Bypass JEP 290"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2024/11/26/Bypass-JEP-290/&title=Bypass JEP 290"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2024/11/26/Bypass-JEP-290/&title=Bypass JEP 290"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2024/11/26/Bypass-JEP-290/&title=Bypass JEP 290"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2024/11/26/Bypass-JEP-290/&name=Bypass JEP 290&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=http://example.com/2024/11/26/Bypass-JEP-290/&t=Bypass JEP 290"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
 </ul>
 
     </div>
